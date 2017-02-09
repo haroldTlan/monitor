@@ -1,0 +1,20 @@
+---
+mail:
+  address:
+  - tim@zexabox.com
+  header: Rozofs Warning
+  message_online: 上线
+  message_outline: 掉线
+monitor:
+- ip: 127.0.0.1
+  port: "56666"
+  name: ser1
+  status: false
+- ip: 127.0.0.1
+  port: "8080"
+  name: facial
+  status: false
+setting:
+  monitor_time_online: 5
+  monitor_time_outline: 5
+
