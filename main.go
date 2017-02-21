@@ -2,7 +2,7 @@ package main
 
 import (
 	"cloud"
-	"errors"
+	"github.com/astaxie/beego/logs"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net"
@@ -14,14 +14,16 @@ const (
 	Path = "monitor.yaml"
 )
 
-var ChanLogEvent chan Log
+func init() {
+	logs.SetLogger(logs.AdapterFile, `{"filename":"monitor.log","maxdays":1}`)
+	logs.EnableFuncCallDepth(true)
+	logs.Async()
+}
 
 func main() {
-	ChanLogEvent = make(chan Log, 1)
 	Online()
 	Outline()
-	LoggerChannel()
-	AddLogtoChan(nil)
+	logs.Info("[MONITOR] BEGIN")
 	for {
 		time.Sleep(10 * time.Second)
 	}
@@ -31,12 +33,11 @@ func main() {
 func Outline() {
 	go func() {
 		for {
-
 			var conf Config
 
 			result := readConf()
 			if err := yaml.Unmarshal([]byte(result), &conf); err != nil {
-				AddLogtoChan(err)
+				logs.Error("[MONITOR] " + err.Error())
 			}
 			for num, val := range conf.Monitor {
 				if val.Ip != "" && !val.Status {
@@ -58,10 +59,9 @@ func Online() {
 		for {
 
 			var conf Config
-
 			result := readConf()
 			if err := yaml.Unmarshal([]byte(result), &conf); err != nil {
-				AddLogtoChan(err)
+				logs.Error("[MONITOR] " + err.Error())
 			}
 
 			for num, val := range conf.Monitor {
@@ -90,12 +90,14 @@ func Ping(ip, port string) error {
 func readConf() string {
 	fi, err := os.Open(Path)
 	if err != nil {
-		AddLogtoChan(err)
+		logs.Error("[MONITOR] " + err.Error())
+		panic(err)
 	}
 	defer fi.Close()
 	fd, err := ioutil.ReadAll(fi)
 	if err != nil {
-		AddLogtoChan(err)
+		logs.Error("[MONITOR] " + err.Error())
+		panic(err)
 	}
 	return string(fd)
 }
@@ -103,7 +105,8 @@ func readConf() string {
 func WriteConf(conf Config) {
 	d, err := yaml.Marshal(&conf)
 	if err != nil {
-		AddLogtoChan(err)
+		logs.Error("[MONITOR] " + err.Error())
+		panic(err)
 	}
 
 	str := "---\n" + string(d) + "\n"
@@ -111,11 +114,13 @@ func WriteConf(conf Config) {
 
 	fi, err := os.Open(Path)
 	if err != nil {
+		logs.Error("[MONITOR] " + err.Error())
 		panic(err)
 	}
 	defer fi.Close()
 	err = ioutil.WriteFile(Path, yaml, 0666)
 	if err != nil {
+		logs.Error("[MONITOR] " + err.Error())
 		panic(err)
 	}
 }
@@ -126,7 +131,7 @@ func Send(name, message string) {
 
 	result := readConf()
 	if err := yaml.Unmarshal([]byte(result), &conf); err != nil {
-		AddLogtoChan(err)
+		logs.Error("[MONITOR] " + err.Error())
 	}
 
 	for _, val := range conf.Mail.Address {
@@ -149,7 +154,7 @@ func Response(conf Config, val Server, num int) error {
 		conf.Monitor[num].Status = false
 		WriteConf(conf)
 		Send(val.Name, conf.Mail.MessageOutline)
-		AddLogtoChan(errors.New(val.Name))
+		logs.Error("[MONITOR] " + val.Name + " No Response")
 	}
 	return nil
 }

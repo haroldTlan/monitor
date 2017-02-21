@@ -1,11 +1,6 @@
 package main
 
-import (
-	"cloud/logger"
-	"fmt"
-	"runtime"
-	"time"
-)
+import ()
 
 type Config struct {
 	Mail    //[]string
@@ -37,33 +32,4 @@ type Log struct {
 	Created_at int64  `yaml:"created_at"`
 	Level      string `yaml:"level"`
 	Source     string `yaml:"scource"`
-}
-
-func LoggerChannel() {
-	go func() {
-		for {
-			time.Sleep(10 * time.Second)
-			select {
-			case v := <-ChanLogEvent:
-				logger.OutputLogger(v.Level, v.Message)
-			default:
-			}
-		}
-	}()
-}
-
-func AddLogtoChan(err error) {
-	var message string
-	var log Log
-	if err == nil {
-		message := "[MONITOR]Begin\n"
-		log = Log{Level: "INFO", Message: message}
-	} else {
-		pc, fn, line, _ := runtime.Caller(1)
-		message = fmt.Sprintf("[MONITOR][%s %s:%d] %s", runtime.FuncForPC(pc).Name(), fn, line, err)
-		log = Log{Level: "ERROR", Message: message}
-	}
-
-	ChanLogEvent <- log
-	return
 }
